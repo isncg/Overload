@@ -11,6 +11,47 @@
 
 #include "OvRendering/Resources/Parsers/AssimpParser.h"
 
+struct OvRendering::Geometry::AssimpVertex
+{
+public:
+	union { aiVector3D position;  OvMaths::FVector3 _position;	};
+	union { aiVector3D normal;    OvMaths::FVector3 _normal;	};
+	union { aiVector3D tangent;   OvMaths::FVector3 _tangent;	};
+	union { aiVector3D bitangent; OvMaths::FVector3 _bitangent;	};
+
+	union
+	{
+		aiVector3D texCoords[AI_MAX_NUMBER_OF_TEXTURECOORDS];
+		struct
+		{
+			OvMaths::FVector2 _texCoords;
+			float _;
+		} _texCoords[AI_MAX_NUMBER_OF_TEXTURECOORDS];
+	};
+
+
+	AssimpVertex() {}
+	AssimpVertex(const AssimpVertex& other)
+	{
+		position = other.position;
+		normal = other.normal;
+		tangent = other.tangent;
+		for (int i = 0; i < AI_MAX_NUMBER_OF_TEXTURECOORDS; i++)
+		{
+			texCoords[i] = other.texCoords[i];
+		}
+		bitangent = other.bitangent;
+	}
+};
+
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetPositionImpl(AssimpVertex& v)      { return v._position;                    }
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetNormalImpl(AssimpVertex& v)        { return v._normal;                      }
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetTangentImpl(AssimpVertex& v)       { return v._tangent;                     }
+OvMaths::FVector2& OvRendering::Geometry::VertexHelper::GetUVImpl(AssimpVertex& v)            { return v._texCoords[0]._texCoords;     }
+OvMaths::FVector2& OvRendering::Geometry::VertexHelper::GetUVImpl(AssimpVertex& v, int index) { return v._texCoords[index]._texCoords; }
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetBitangentImpl(AssimpVertex& v)     { return v._bitangent;                   }
+
+
 bool OvRendering::Resources::Parsers::AssimpParser::LoadModel(const std::string & p_fileName, std::vector<Mesh*>& p_meshes, std::vector<std::string>& p_materials, EModelParserFlags p_parserFlags)
 {
 	Assimp::Importer import;
@@ -49,11 +90,13 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transfor
 	// Process all the node's meshes (if any)
 	for (uint32_t i = 0; i < p_node->mNumMeshes; ++i)
 	{
-		std::vector<Geometry::Vertex> vertices;
+		std::vector<Geometry::AssimpVertex> vertices;
 		std::vector<uint32_t> indices;
 		aiMesh* mesh = p_scene->mMeshes[p_node->mMeshes[i]];
 		ProcessMesh(&nodeTransformation, mesh, p_scene, vertices, indices);
-		p_meshes.push_back(new Mesh(vertices, indices, mesh->mMaterialIndex)); // The model will handle mesh destruction
+		auto ovmesh = new OvRendering::Resources::Mesh();
+		ovmesh->Init(vertices, indices, mesh->mMaterialIndex);
+		p_meshes.push_back(ovmesh); // The model will handle mesh destruction
 	}
 
 	// Then do the same for each of its children
@@ -63,37 +106,21 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transfor
 	}
 }
 
-void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transform, aiMesh* p_mesh, const aiScene* p_scene, std::vector<Geometry::Vertex>& p_outVertices, std::vector<uint32_t>& p_outIndices)
+void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transform, aiMesh* p_mesh, const aiScene* p_scene, std::vector<OvRendering::Geometry::AssimpVertex>& p_outVertices, std::vector<uint32_t>& p_outIndices)
 {
 	aiMatrix4x4 meshTransformation = *reinterpret_cast<aiMatrix4x4*>(p_transform);
 
 	for (uint32_t i = 0; i < p_mesh->mNumVertices; ++i)
 	{
-		aiVector3D position		= meshTransformation * p_mesh->mVertices[i];
-		aiVector3D normal		= meshTransformation * (p_mesh->mNormals ? p_mesh->mNormals[i] : aiVector3D(0.0f, 0.0f, 0.0f));
-		aiVector3D texCoords	= p_mesh->mTextureCoords[0] ? p_mesh->mTextureCoords[0][i] : aiVector3D(0.0f, 0.0f, 0.0f);
-		aiVector3D tangent		= p_mesh->mTangents ? meshTransformation * p_mesh->mTangents[i] : aiVector3D(0.0f, 0.0f, 0.0f);
-		aiVector3D bitangent	= p_mesh->mBitangents ? meshTransformation * p_mesh->mBitangents[i] : aiVector3D(0.0f, 0.0f, 0.0f);
+		OvRendering::Geometry::AssimpVertex v;
+		v.position = meshTransformation * p_mesh->mVertices[i];
+		v.normal = meshTransformation * (p_mesh->mNormals ? p_mesh->mNormals[i] : aiVector3D(0.0f, 0.0f, 0.0f));
+		for (int texcoordindex = 0; texcoordindex < AI_MAX_NUMBER_OF_TEXTURECOORDS; texcoordindex++)
+			v.texCoords[texcoordindex] = p_mesh->mTextureCoords[texcoordindex] ? p_mesh->mTextureCoords[texcoordindex][i] : aiVector3D(0.0f, 0.0f, 0.0f);
+		v.tangent = p_mesh->mTangents ? meshTransformation * p_mesh->mTangents[i] : aiVector3D(0.0f, 0.0f, 0.0f);
+		v.bitangent = p_mesh->mBitangents ? meshTransformation * p_mesh->mBitangents[i] : aiVector3D(0.0f, 0.0f, 0.0f);
 
-		p_outVertices.push_back
-		(
-			{
-				position.x,
-				position.y,
-				position.z,
-				texCoords.x,
-				texCoords.y,
-				normal.x,
-				normal.y,
-				normal.z,
-				tangent.x,
-				tangent.y,
-				tangent.z,
-				bitangent.x,
-				bitangent.y,
-				bitangent.z
-			}
-		);
+		p_outVertices.push_back(v);
 	}
 
 	for (uint32_t faceID = 0; faceID < p_mesh->mNumFaces; ++faceID)

@@ -9,25 +9,10 @@
 
 OvRendering::Core::ShapeDrawer::ShapeDrawer(OvRendering::Core::Renderer& p_renderer) : m_renderer(p_renderer)
 {
-	std::vector<Geometry::Vertex> vertices;
-	vertices.push_back
-	({
-		0, 0, 0,
-		0, 0,
-		0, 0, 0,
-		0, 0, 0,
-		0, 0, 0
-	});
-	vertices.push_back
-	({
-		0, 0, 0,
-		0, 0,
-		0, 0, 0,
-		0, 0, 0,
-		0, 0, 0
-	});
+	std::vector<Geometry::EmptyVertex> vertices{ Geometry::EmptyVertex{} , Geometry::EmptyVertex{} };
 
-	m_lineMesh = new Resources::Mesh(vertices, { 0, 1 }, 0);
+	m_lineMesh = new Resources::Mesh();
+	m_lineMesh->Init(vertices, { 0,1 }, 0);
 
 	std::string vertexShader = R"(
 #version 430 core
