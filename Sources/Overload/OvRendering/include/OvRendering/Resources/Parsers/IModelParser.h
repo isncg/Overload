@@ -11,6 +11,11 @@
 #include "OvRendering/Resources/Mesh.h"
 #include "OvRendering/Resources/Parsers/EModelParserFlags.h"
 
+namespace OvRendering::Resources
+{
+	class Animation;
+}
+
 namespace OvRendering::Resources::Parsers
 {
 	/**
@@ -31,7 +36,8 @@ namespace OvRendering::Resources::Parsers
 			const std::string& p_fileName,
 			std::vector<Mesh*>& p_meshes,
 			std::vector<std::string>& p_materials,
-			EModelParserFlags p_parserFlags
+			EModelParserFlags p_parserFlags,
+			OvRendering::Resources::Animation* p_outAnimation
 		) = 0;
 	};
 }

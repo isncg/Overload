@@ -9,6 +9,7 @@
 #include <unordered_map>
 
 #include "OvRendering/Resources/Mesh.h"
+#include "OvRendering/Resources/Animation.h"
 
 namespace OvRendering::Resources
 {
@@ -37,6 +38,8 @@ namespace OvRendering::Resources
 		*/
 		const OvRendering::Geometry::BoundingSphere& GetBoundingSphere() const;
 
+		const Animation* GetAnimation() const;
+
 	private:
 		Model(const std::string& p_path);
 		~Model();
@@ -49,7 +52,7 @@ namespace OvRendering::Resources
 	private:
 		std::vector<Mesh*> m_meshes;
 		std::vector<std::string> m_materialNames;
-
+		Animation m_animation;
 		Geometry::BoundingSphere m_boundingSphere;
 	};
 }

@@ -13,6 +13,11 @@
 
 #pragma once
 
+namespace OvRendering::Resources
+{
+	class Animation;
+}
+
 namespace OvRendering::Resources::Parsers
 {
 	/**
@@ -33,12 +38,14 @@ namespace OvRendering::Resources::Parsers
 			const std::string& p_fileName,
 			std::vector<Mesh*>& p_meshes,
 			std::vector<std::string>& p_materials,
-			EModelParserFlags p_parserFlags
+			EModelParserFlags p_parserFlags,
+			OvRendering::Resources::Animation* p_outAnimation
 		) override;
 
 	private:
 		void ProcessMaterials(const struct aiScene* p_scene, std::vector<std::string>& p_materials);;
-		void ProcessNode(void* p_transform, struct aiNode* p_node, const struct aiScene* p_scene, std::vector<Mesh*>& p_meshes);
-		void ProcessMesh(void* p_transform, struct aiMesh* p_mesh, const struct aiScene* p_scene, std::vector<OvRendering::Geometry::AssimpVertex>& p_outVertices, std::vector<uint32_t>& p_outIndices);
+		void ProcessNode(void* p_transform, struct aiNode* p_node, const struct aiScene* p_scene, std::vector<Mesh*>& p_meshes, OvRendering::Resources::Animation* p_outAnimation);
+		void ProcessMesh(void* p_transform, struct aiMesh* p_mesh, const struct aiScene* p_scene, std::vector<OvRendering::Geometry::AssimpVertex>& p_outVertices, std::vector<uint32_t>& p_outIndices, OvRendering::Resources::Animation* p_outAnimation);
+		void ProcessAnimations(const aiScene* p_scene, OvRendering::Resources::Animation* p_outAnimation);
 	};
 }
