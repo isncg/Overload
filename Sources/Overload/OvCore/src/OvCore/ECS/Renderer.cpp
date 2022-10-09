@@ -12,6 +12,9 @@
 #include "OvCore/ECS/Renderer.h"
 #include "OvCore/ECS/Components/CModelRenderer.h"
 #include "OvCore/ECS/Components/CMaterialRenderer.h"
+#include "OvCore/ECS/Components/CAnimation.h"
+#include "OvRendering/Buffers/UniformBuffer.h"
+#include "OvRendering/Resources/Mesh.h"
 
 OvCore::ECS::Renderer::Renderer(OvRendering::Context::Driver& p_driver) :
 	OvRendering::Core::Renderer(p_driver),
@@ -89,7 +92,8 @@ void OvCore::ECS::Renderer::RenderScene
 	const OvMaths::FVector3& p_cameraPosition,
 	const OvRendering::LowRenderer::Camera& p_camera,
 	const OvRendering::Data::Frustum* p_customFrustum,
-	OvCore::Resources::Material* p_defaultMaterial
+	OvCore::Resources::Material* p_defaultMaterial,
+	OvRendering::Buffers::UniformBuffer* p_ubo
 )
 {
 	OpaqueDrawables	opaqueMeshes;
@@ -105,11 +109,28 @@ void OvCore::ECS::Renderer::RenderScene
 		std::tie(opaqueMeshes, transparentMeshes) = FindAndSortDrawables(p_scene, p_cameraPosition, p_defaultMaterial);
 	}
 
+	auto uboOffset = sizeof(OvMaths::FMatrix4) * 4 + sizeof(OvMaths::FVector3) + sizeof(float);
 	for (const auto& [distance, drawable] : opaqueMeshes)
+	{
+		auto boneData = std::get<4>(drawable);
+		auto mat = std::get<2>(drawable);
+		if (boneData)
+		{
+			p_ubo->SetSubData(*boneData, uboOffset);
+		}
 		DrawDrawable(drawable);
+	}
 
 	for (const auto& [distance, drawable] : transparentMeshes)
+	{
+		auto boneData = std::get<4>(drawable);
+		auto mat = std::get<2>(drawable);
+		if (boneData)
+		{
+			p_ubo->SetSubData(*boneData, uboOffset);
+		}
 		DrawDrawable(drawable);
+	}
 }
 
 void FindAndSortDrawables
@@ -134,7 +155,8 @@ void FindAndSortDrawables
 					const auto& transform = modelRenderer->owner.transform.GetFTransform();
 
 					const OvCore::ECS::Components::CMaterialRenderer::MaterialList& materials = materialRenderer->GetMaterials();
-
+					auto anim = modelRenderer->owner.GetComponent<OvCore::ECS::Components::CAnimation>();
+					auto bones = anim ? anim->GetBones() : nullptr;
 					for (auto mesh : model->GetMeshes())
 					{
 						OvCore::Resources::Material* material = nullptr;
@@ -148,7 +170,7 @@ void FindAndSortDrawables
 
 						if (material)
 						{
-							OvCore::ECS::Renderer::Drawable element = { transform.GetWorldMatrix(), mesh, material, materialRenderer->GetUserMatrix() };
+							OvCore::ECS::Renderer::Drawable element = { transform.GetWorldMatrix(), mesh, material, materialRenderer->GetUserMatrix(), bones};
 
 							if (material->IsBlendable())
 								p_transparents.emplace(distanceToActor, element);
@@ -186,7 +208,8 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 				if (auto materialRenderer = modelRenderer->owner.GetComponent<CMaterialRenderer>())
 				{
 					auto& transform = owner.transform.GetFTransform();
-
+					auto anim = owner.GetComponent<CAnimation>();
+					auto bones = anim ? anim->GetBones() : nullptr;
 					OvRendering::Settings::ECullingOptions cullingOptions = OvRendering::Settings::ECullingOptions::NONE;
 
 					if (modelRenderer->GetFrustumBehaviour() != CModelRenderer::EFrustumBehaviour::DISABLED)
@@ -226,7 +249,7 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 
 							if (material)
 							{
-								OvCore::ECS::Renderer::Drawable element = { transform.GetWorldMatrix(), &mesh.get(), material, materialRenderer->GetUserMatrix() };
+								OvCore::ECS::Renderer::Drawable element = { transform.GetWorldMatrix(), &mesh.get(), material, materialRenderer->GetUserMatrix(), bones};
 
 								if (material->IsBlendable())
 									transparentDrawables.emplace(distanceToActor, element);
@@ -266,7 +289,10 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 					const auto& transform = modelRenderer->owner.transform.GetFTransform();
 
 					const OvCore::ECS::Components::CMaterialRenderer::MaterialList& materials = materialRenderer->GetMaterials();
-
+					auto anim = modelRenderer->owner.GetComponent<OvCore::ECS::Components::CAnimation>();
+					if (anim)
+						anim->SetSamplePos(0.0f);
+					auto bones = anim ? anim->GetBones() : nullptr;
 					for (auto mesh : model->GetMeshes())
 					{
 						OvCore::Resources::Material* material = nullptr;
@@ -280,7 +306,7 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 
 						if (material)
 						{
-							OvCore::ECS::Renderer::Drawable element = { transform.GetWorldMatrix(), mesh, material, materialRenderer->GetUserMatrix() };
+							OvCore::ECS::Renderer::Drawable element = { transform.GetWorldMatrix(), mesh, material, materialRenderer->GetUserMatrix(), bones };
 
 							if (material->IsBlendable())
 								transparentDrawables.emplace(distanceToActor, element);

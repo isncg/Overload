@@ -111,7 +111,9 @@ OvEditor::Core::Context::Context(const std::string& p_projectPath, const std::st
 		sizeof(OvMaths::FMatrix4) +
 		sizeof(OvMaths::FVector3) +
 		sizeof(float) +
-		sizeof(OvMaths::FMatrix4),
+		sizeof(OvMaths::FMatrix4) +
+		sizeof(int) +
+		sizeof(OvMaths::FMatrix4) * 64,
 		0, 0,
 		OvRendering::Buffers::EAccessSpecifier::STREAM_DRAW
 	);

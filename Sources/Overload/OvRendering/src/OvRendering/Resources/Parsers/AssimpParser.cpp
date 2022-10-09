@@ -38,10 +38,10 @@ public:
 
 	AssimpVertex() 
 	{
-		boneIDs[0] = -1;
-		boneIDs[1] = -1;
-		boneIDs[2] = -1;
-		boneIDs[3] = -1;
+		boneIDs[0] = 0;
+		boneIDs[1] = 0;
+		boneIDs[2] = 0;
+		boneIDs[3] = 0;
 	}
 	AssimpVertex(const AssimpVertex& other)
 	{
@@ -59,13 +59,14 @@ public:
 	}
 };
 
-OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetPositionImpl(AssimpVertex& v)      { return v._position;                    }
-OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetNormalImpl(AssimpVertex& v)        { return v._normal;                      }
-OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetTangentImpl(AssimpVertex& v)       { return v._tangent;                     }
-OvMaths::FVector2& OvRendering::Geometry::VertexHelper::GetUVImpl(AssimpVertex& v)            { return v._texCoords[0]._texCoords;     }
-OvMaths::FVector2& OvRendering::Geometry::VertexHelper::GetUVImpl(AssimpVertex& v, int index) { return v._texCoords[index]._texCoords; }
-OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetBitangentImpl(AssimpVertex& v)     { return v._bitangent;                   }
-
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetPosition(AssimpVertex& v)      { return v._position;                    }
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetNormal(AssimpVertex& v)        { return v._normal;                      }
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetTangent(AssimpVertex& v)       { return v._tangent;                     }
+OvMaths::FVector2& OvRendering::Geometry::VertexHelper::GetUV(AssimpVertex& v)            { return v._texCoords[0]._texCoords;     }
+OvMaths::FVector2& OvRendering::Geometry::VertexHelper::GetUV(AssimpVertex& v, int index) { return v._texCoords[index]._texCoords; }
+OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetBitangent(AssimpVertex& v)     { return v._bitangent;                   }
+const int* OvRendering::Geometry::VertexHelper::GetBoneIds(AssimpVertex& v) { return v.boneIDs; }
+const float* OvRendering::Geometry::VertexHelper::GetBoneWeights(AssimpVertex& v) { return v.boneWeights; }
 
 bool OvRendering::Resources::Parsers::AssimpParser::LoadModel(const std::string & p_fileName, std::vector<Mesh*>& p_meshes, std::vector<std::string>& p_materials, EModelParserFlags p_parserFlags, OvRendering::Resources::Animation* p_outAnimation)
 {
@@ -110,7 +111,7 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transfor
 		aiMesh* mesh = p_scene->mMeshes[p_node->mMeshes[i]];
 		ProcessMesh(&nodeTransformation, mesh, p_scene, vertices, indices, p_outAnimation);
 		auto ovmesh = new OvRendering::Resources::Mesh();
-		ovmesh->Init(vertices, indices, mesh->mMaterialIndex);
+		ovmesh->Init(vertices, indices, mesh->mMaterialIndex, mesh->HasBones());
 		p_meshes.push_back(ovmesh); // The model will handle mesh destruction
 	}
 
@@ -162,9 +163,9 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transfor
 				auto& vert = p_outVertices[weight.mVertexId];
 				for (int k = 0; k < 4; k++)
 				{
-					if (vert.boneIDs[k] < 0)
+					if (vert.boneIDs[k] <= 0)
 					{
-						vert.boneIDs[k] = anim->boneId;
+						vert.boneIDs[k] = anim->boneId + 1;
 						vert.boneWeights[k] = weight.mWeight;
 						break;
 					}

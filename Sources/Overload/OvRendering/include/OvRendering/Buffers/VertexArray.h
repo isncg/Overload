@@ -53,6 +53,9 @@ namespace OvRendering::Buffers
 		template <class T>
 		void BindAttribute(uint32_t p_attribute, VertexBuffer<T>& p_vertexBuffer, EType p_type, uint64_t p_count, uint64_t p_stride, intptr_t p_offset);
 
+		template <class T>
+		void BindIntAttribute(uint32_t p_attribute, VertexBuffer<T>& p_vertexBuffer, EType p_type, uint64_t p_count, uint64_t p_stride, intptr_t p_offset);
+
 		/**
 		* Bind the buffer
 		*/
@@ -71,6 +74,18 @@ namespace OvRendering::Buffers
 	private:
 		GLuint m_bufferID;
 	};
+
+
+	class BufferData
+	{
+	public:
+		std::vector<GLbyte> bytes;
+		template<class T>
+		void push_back(T& data);
+		template<class T>
+		void push_back(const T* data, int count);
+	};
+	
 }
 
 #include "OvRendering/Buffers/VertexArray.inl"

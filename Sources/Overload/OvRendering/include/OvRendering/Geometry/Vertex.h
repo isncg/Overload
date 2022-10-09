@@ -28,31 +28,30 @@ namespace OvRendering::Geometry
 
 	class VertexHelper
 	{
-	private:
-		static OvMaths::FVector3& GetPositionImpl(Vertex& v);
-		static OvMaths::FVector3& GetNormalImpl(Vertex& v);
-		static OvMaths::FVector3& GetTangentImpl(Vertex& v);
-		static OvMaths::FVector2& GetUVImpl(Vertex& v);
-		static OvMaths::FVector3& GetBitangentImpl(Vertex& v);
-
-		static OvMaths::FVector3& GetPositionImpl(EmptyVertex& v);
-		static OvMaths::FVector3& GetNormalImpl(EmptyVertex& v);
-		static OvMaths::FVector3& GetTangentImpl(EmptyVertex& v);
-		static OvMaths::FVector2& GetUVImpl(EmptyVertex& v);
-		static OvMaths::FVector3& GetBitangentImpl(EmptyVertex& v);
-
-		static OvMaths::FVector3& GetPositionImpl(AssimpVertex& v);
-		static OvMaths::FVector3& GetNormalImpl(AssimpVertex& v);
-		static OvMaths::FVector3& GetTangentImpl(AssimpVertex& v);
-		static OvMaths::FVector2& GetUVImpl(AssimpVertex& v);
-		static OvMaths::FVector2& GetUVImpl(AssimpVertex& v, int index);
-		static OvMaths::FVector3& GetBitangentImpl(AssimpVertex& v);
 	public:
-		template <class T> static OvMaths::FVector3& GetPosition(T& v) { return GetPositionImpl(v); };
-		template <class T> static OvMaths::FVector3& GetNormal(T& v) { return GetNormalImpl(v); };
-		template <class T> static OvMaths::FVector3& GetTangent(T& v) { return GetTangentImpl(v); };
-		template <class T> static OvMaths::FVector2& GetUV(T& v) { return GetUVImpl(v); };
-		template <class T> static OvMaths::FVector2& GetUV(T& v, int index) { return GetUVImpl(v, index); };
-		template <class T> static OvMaths::FVector3& GetBitangent(T& v) { return GetBitangentImpl(v); };
+		static OvMaths::FVector3& GetPosition(Vertex& v);
+		static OvMaths::FVector3& GetNormal(Vertex& v);
+		static OvMaths::FVector3& GetTangent(Vertex& v);
+		static OvMaths::FVector2& GetUV(Vertex& v);
+		static OvMaths::FVector3& GetBitangent(Vertex& v);
+		static const int* GetBoneIds(Vertex& v);
+		static const float* GetBoneWeights(Vertex& v);
+
+		static OvMaths::FVector3& GetPosition(EmptyVertex& v);
+		static OvMaths::FVector3& GetNormal(EmptyVertex& v);
+		static OvMaths::FVector3& GetTangent(EmptyVertex& v);
+		static OvMaths::FVector2& GetUV(EmptyVertex& v);
+		static OvMaths::FVector3& GetBitangent(EmptyVertex& v);
+		static const int* GetBoneIds(EmptyVertex& v);
+		static const float* GetBoneWeights(EmptyVertex& v);
+
+		static OvMaths::FVector3& GetPosition(AssimpVertex& v);
+		static OvMaths::FVector3& GetNormal(AssimpVertex& v);
+		static OvMaths::FVector3& GetTangent(AssimpVertex& v);
+		static OvMaths::FVector2& GetUV(AssimpVertex& v);
+		static OvMaths::FVector2& GetUV(AssimpVertex& v, int index);
+		static OvMaths::FVector3& GetBitangent(AssimpVertex& v);
+		static const int* GetBoneIds(AssimpVertex& v);
+		static const float* GetBoneWeights(AssimpVertex& v);
 	};
 }

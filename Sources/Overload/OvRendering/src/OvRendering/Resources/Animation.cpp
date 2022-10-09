@@ -1,8 +1,15 @@
 #include "OvRendering/Resources/Animation.h"
 
 template<class T>
-void SearchTime(std::vector<T> keys, double time, int& left, int& right)
+bool SearchTime(const std::vector<T>& keys, double time, T& result)
 {
+	if (keys.size() == 1)
+	{
+		result.value = keys[0].value;
+		return true;
+	}
+	int left = 0;
+	int right = keys.size() - 1;
 	auto vl = keys[left].time;
 	auto vr = keys[right].time;
 	while (left + 1 < right)
@@ -20,39 +27,34 @@ void SearchTime(std::vector<T> keys, double time, int& left, int& right)
 			vl = vm;
 		}
 	}
+	if (left < right && right < keys.size())
+	{
+		auto& l = keys[left];
+		auto& r = keys[right];
+		result.value = (l.value * (r.time - time) + r.value * (time - l.time)) / (r.time - l.time);
+		return true;
+	}
+	return false;
 }
 
 
-void OvRendering::Resources::MeshBoneAnimation::GetTransform(double time, MeshBoneTransform& result)
+void OvRendering::Resources::MeshBoneAnimation::GetTransform(double time, MeshBoneTransform& result) const
 {
-	int pos_index_l = 0;
-	int pos_index_r = positions.size();
-	int rot_index_l = 0;
-	int rot_index_r = rotations.size();
-	int scl_index_l = 0;
-	int scl_index_r = scales.size();
-	SearchTime(positions, time, pos_index_l, pos_index_r);
-	SearchTime(rotations, time, rot_index_l, rot_index_r);
-	SearchTime(scales, time, scl_index_l, scl_index_r);
+	MeshBoneAnimationPositionKey positions_result;
+	MeshBoneAnimationRotationKey rotations_result;
+	MeshBoneAnimationScaleKey scales_result;
+	if (SearchTime(positions, time, positions_result))
+		result.position = positions_result.value;
+	if (SearchTime(rotations, time, rotations_result))
+		result.rotation = rotations_result.value;
+	if (SearchTime(scales, time, scales_result))
+		result.scale = scales_result.value;
 
-	if (pos_index_l < pos_index_r)
-	{
-		auto& l = positions[pos_index_l];
-		auto& r = positions[pos_index_r];
-		result.position = (l.value * (r.time - time) + r.value * (time - l.time)) / (r.time - l.time);
-	}
+}
 
-	if (rot_index_l < rot_index_r)
-	{
-		auto& l = rotations[rot_index_l];
-		auto& r = rotations[rot_index_r];
-		result.rotation = (l.value * (r.time - time) + r.value * (time - l.time)) / (r.time - l.time);
-	}
-
-	if (scl_index_l < scl_index_r)
-	{
-		auto& l = scales[scl_index_l];
-		auto& r = scales[scl_index_r];
-		result.scale = (l.value * (r.time - time) + r.value * (time - l.time)) / (r.time - l.time);
-	}
+void OvRendering::Resources::MeshBoneAnimation::GetTransform(double time, OvMaths::FMatrix4& result) const
+{
+	MeshBoneTransform cache;
+	GetTransform(time, cache);
+	result = OvMaths::FMatrix4::Translation(cache.position)* OvMaths::FQuaternion::ToMatrix4(OvMaths::FQuaternion::Normalize(cache.rotation))* OvMaths::FMatrix4::Scaling(cache.scale);
 }

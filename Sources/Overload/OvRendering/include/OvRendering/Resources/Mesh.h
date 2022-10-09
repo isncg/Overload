@@ -14,9 +14,15 @@
 #include "OvRendering/Resources/IMesh.h"
 #include "OvRendering/Geometry/Vertex.h"
 #include "OvRendering/Geometry/BoundingSphere.h"
+#include "OvMaths/FMatrix4.h"
 
 namespace OvRendering::Resources
 {
+	struct MeshBones
+	{
+		int boneCount = 0;
+		std::vector<OvMaths::FMatrix4> bones;
+	};
 	/**
 	* Standard mesh of OvRendering
 	*/
@@ -30,10 +36,10 @@ namespace OvRendering::Resources
 		* @param p_materialIndex
 		*/
 		Mesh();
-		Mesh(std::vector<Geometry::Vertex>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex);
+		Mesh(std::vector<Geometry::Vertex>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone = false);
 
 		template<class T>
-		void Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex);
+		void Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone);
 		/**
 		* Bind the mesh (Actually bind its VAO)
 		*/
@@ -66,7 +72,7 @@ namespace OvRendering::Resources
 
 	private:
 		template<class T>
-		void CreateBuffers(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices);
+		void CreateBuffers(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, bool hasBone);
 		template<class T>
 		void ComputeBoundingSphere(std::vector<T>& p_vertices);
 
@@ -76,62 +82,67 @@ namespace OvRendering::Resources
 		uint32_t m_materialIndex;
 
 		Buffers::VertexArray							m_vertexArray;
-		std::unique_ptr<Buffers::VertexBuffer<float>>	m_vertexBuffer;
+		std::unique_ptr<Buffers::VertexBuffer<GLbyte>>	m_vertexBuffer;
 		std::unique_ptr<Buffers::IndexBuffer>			m_indexBuffer;
 
 		Geometry::BoundingSphere m_boundingSphere;
 	};
 
 	template<class T>
-	inline void Mesh::Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex)
+	inline void Mesh::Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone)
 	{
 		m_vertexCount = static_cast<uint32_t>(p_vertices.size()),
 		m_indicesCount = static_cast<uint32_t>(p_indices.size()),
 		m_materialIndex = p_materialIndex;
 
-		CreateBuffers(p_vertices, p_indices);
+		CreateBuffers(p_vertices, p_indices, hasBone);
 		ComputeBoundingSphere(p_vertices);
 	}
 
 	template<class T>
-	inline void Mesh::CreateBuffers(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices)
+	inline void Mesh::CreateBuffers(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, bool hasBone)
 	{
-		std::vector<float> vertexData;
+		//std::vector<float> vertexData;
+		OvRendering::Buffers::BufferData vertexData;
 
 		std::vector<unsigned int> rawIndices;
 
 		for (auto& vertex : p_vertices)
 		{
-			vertexData.push_back(Geometry::VertexHelper::GetPosition(vertex).x);
-			vertexData.push_back(Geometry::VertexHelper::GetPosition(vertex).y);
-			vertexData.push_back(Geometry::VertexHelper::GetPosition(vertex).z);
+			vertexData.push_back(Geometry::VertexHelper::GetPosition(vertex));
+			vertexData.push_back(Geometry::VertexHelper::GetUV(vertex));
+			vertexData.push_back(Geometry::VertexHelper::GetNormal(vertex));
+			vertexData.push_back(Geometry::VertexHelper::GetTangent(vertex));
+			vertexData.push_back(Geometry::VertexHelper::GetBitangent(vertex));
 
-			vertexData.push_back(Geometry::VertexHelper::GetUV(vertex).x);
-			vertexData.push_back(Geometry::VertexHelper::GetUV(vertex).y);
-
-			vertexData.push_back(Geometry::VertexHelper::GetNormal(vertex).x);
-			vertexData.push_back(Geometry::VertexHelper::GetNormal(vertex).y);
-			vertexData.push_back(Geometry::VertexHelper::GetNormal(vertex).z);
-
-			vertexData.push_back(Geometry::VertexHelper::GetTangent(vertex).x);
-			vertexData.push_back(Geometry::VertexHelper::GetTangent(vertex).y);
-			vertexData.push_back(Geometry::VertexHelper::GetTangent(vertex).z);
-
-			vertexData.push_back(Geometry::VertexHelper::GetBitangent(vertex).x);
-			vertexData.push_back(Geometry::VertexHelper::GetBitangent(vertex).y);
-			vertexData.push_back(Geometry::VertexHelper::GetBitangent(vertex).z);
+			if (hasBone)
+			{
+				vertexData.push_back(Geometry::VertexHelper::GetBoneIds(vertex), 4);
+				vertexData.push_back(Geometry::VertexHelper::GetBoneWeights(vertex), 4);
+			}
 		}
 
-		m_vertexBuffer = std::make_unique<Buffers::VertexBuffer<float>>(vertexData);
+		m_vertexBuffer = std::make_unique<Buffers::VertexBuffer<GLbyte>>(vertexData.bytes);
 		m_indexBuffer = std::make_unique<Buffers::IndexBuffer>(const_cast<uint32_t*>(p_indices.data()), p_indices.size());
 
-		uint64_t vertexSize = sizeof(Geometry::Vertex);
+		uint64_t vertexSize = sizeof(float) * (3+2+3+3+3);
+		if (hasBone)
+		{
+			vertexSize += sizeof(int) * 4;
+			vertexSize += sizeof(float) * 4;
+		}
 
 		m_vertexArray.BindAttribute(0, *m_vertexBuffer, Buffers::EType::FLOAT, 3, vertexSize, 0);
 		m_vertexArray.BindAttribute(1, *m_vertexBuffer, Buffers::EType::FLOAT, 2, vertexSize, sizeof(float) * 3);
 		m_vertexArray.BindAttribute(2, *m_vertexBuffer, Buffers::EType::FLOAT, 3, vertexSize, sizeof(float) * 5);
 		m_vertexArray.BindAttribute(3, *m_vertexBuffer, Buffers::EType::FLOAT, 3, vertexSize, sizeof(float) * 8);
 		m_vertexArray.BindAttribute(4, *m_vertexBuffer, Buffers::EType::FLOAT, 3, vertexSize, sizeof(float) * 11);
+
+		if (hasBone)
+		{
+			m_vertexArray.BindIntAttribute(5, *m_vertexBuffer, Buffers::EType::INT, 4, vertexSize, sizeof(float) * 14);
+			m_vertexArray.BindAttribute(6, *m_vertexBuffer, Buffers::EType::FLOAT, 4, vertexSize, sizeof(float) * 14 + sizeof(int) * 4);
+		}
 	}
 	
 	template<class T>

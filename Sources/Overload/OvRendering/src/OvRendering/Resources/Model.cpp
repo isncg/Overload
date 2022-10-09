@@ -71,3 +71,8 @@ const std::vector<std::string>& OvRendering::Resources::Model::GetMaterialNames(
 {
 	return m_materialNames;
 }
+
+const OvRendering::Resources::Animation* OvRendering::Resources::Model::GetAnimation() const
+{
+	return &m_animation;
+}

@@ -12,7 +12,7 @@ OvRendering::Core::ShapeDrawer::ShapeDrawer(OvRendering::Core::Renderer& p_rende
 	std::vector<Geometry::EmptyVertex> vertices{ Geometry::EmptyVertex{} , Geometry::EmptyVertex{} };
 
 	m_lineMesh = new Resources::Mesh();
-	m_lineMesh->Init(vertices, { 0,1 }, 0);
+	m_lineMesh->Init(vertices, { 0,1 }, 0, false);
 
 	std::string vertexShader = R"(
 #version 430 core

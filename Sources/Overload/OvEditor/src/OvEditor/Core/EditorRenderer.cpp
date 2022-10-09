@@ -161,7 +161,7 @@ void OvEditor::Core::EditorRenderer::RenderScene(const OvMaths::FVector3& p_came
 {
 	/* Render the actors */
 	m_context.lightSSBO->Bind(0);
-	m_context.renderer->RenderScene(*m_context.sceneManager.GetCurrentScene(), p_cameraPosition, p_camera, p_customFrustum, &m_emptyMaterial);
+	m_context.renderer->RenderScene(*m_context.sceneManager.GetCurrentScene(), p_cameraPosition, p_camera, p_customFrustum, &m_emptyMaterial, m_context.engineUBO.get());
 	m_context.lightSSBO->Unbind();
 }
 

@@ -77,7 +77,7 @@ void OvGame::Core::GameRenderer::RenderScene()
 
 			uint8_t glState = m_context.renderer->FetchGLState();
 			m_context.renderer->ApplyStateMask(glState);
-			m_context.renderer->RenderScene(*currentScene, cameraPosition, camera, nullptr, &m_emptyMaterial);
+			m_context.renderer->RenderScene(*currentScene, cameraPosition, camera, nullptr, &m_emptyMaterial, m_context.engineUBO.get());
 			m_context.renderer->ApplyStateMask(glState);
 		}
 		else

@@ -18,6 +18,11 @@
 #include "OvCore/ECS/Components/CCamera.h"
 #include "OvCore/SceneSystem/Scene.h"
 
+namespace OvRendering::Buffers
+{
+	class UniformBuffer;
+}
+
 namespace OvCore::ECS
 {
 	/**
@@ -27,7 +32,7 @@ namespace OvCore::ECS
 	class Renderer : public OvRendering::Core::Renderer
 	{
 	public:
-		using Drawable				= std::tuple<OvMaths::FMatrix4, OvRendering::Resources::Mesh*, OvCore::Resources::Material*, OvMaths::FMatrix4>;
+		using Drawable				= std::tuple<OvMaths::FMatrix4, OvRendering::Resources::Mesh*, OvCore::Resources::Material*, OvMaths::FMatrix4, const OvRendering::Resources::MeshBones*>;
 		using OpaqueDrawables		= std::multimap<float, Drawable, std::less<float>>;
 		using TransparentDrawables	= std::multimap<float, Drawable, std::greater<float>>;
 
@@ -75,8 +80,9 @@ namespace OvCore::ECS
 			OvCore::SceneSystem::Scene& p_scene,
 			const OvMaths::FVector3& p_cameraPosition,
 			const OvRendering::LowRenderer::Camera& p_camera,
-			const OvRendering::Data::Frustum* p_customFrustum = nullptr,
-			OvCore::Resources::Material* p_defaultMaterial = nullptr
+			const OvRendering::Data::Frustum* p_customFrustum,
+			OvCore::Resources::Material* p_defaultMaterial,
+			OvRendering::Buffers::UniformBuffer* p_ubo 
 		);
 
 		/**

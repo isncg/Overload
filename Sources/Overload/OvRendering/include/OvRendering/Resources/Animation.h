@@ -43,7 +43,8 @@ namespace OvRendering::Resources
 		std::vector<MeshBoneAnimationPositionKey> positions;
 		std::vector<MeshBoneAnimationRotationKey> rotations;
 		std::vector<MeshBoneAnimationScaleKey> scales;
-		void GetTransform(double time, MeshBoneTransform& result);
+		void GetTransform(double time, MeshBoneTransform& result) const;
+		void GetTransform(double time, OvMaths::FMatrix4& result) const;
 	};
 
 	

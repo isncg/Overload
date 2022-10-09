@@ -12,12 +12,12 @@ OvRendering::Resources::Mesh::Mesh()
 {
 }
 
-OvRendering::Resources::Mesh::Mesh(std::vector<Geometry::Vertex>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex) :
+OvRendering::Resources::Mesh::Mesh(std::vector<Geometry::Vertex>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone) :
 	m_vertexCount(static_cast<uint32_t>(p_vertices.size())),
 	m_indicesCount(static_cast<uint32_t>(p_indices.size())),
 	m_materialIndex(p_materialIndex)
 {
-	CreateBuffers(p_vertices, p_indices);
+	CreateBuffers(p_vertices, p_indices, hasBone);
 	ComputeBoundingSphere(p_vertices);
 }
 
