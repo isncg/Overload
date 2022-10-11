@@ -21,7 +21,7 @@ namespace OvRendering::Resources
 	struct MeshBones
 	{
 		int boneCount = 0;
-		std::vector<OvMaths::FMatrix4> bones;
+		OvMaths::FMatrix4 bones[64];
 	};
 	/**
 	* Standard mesh of OvRendering

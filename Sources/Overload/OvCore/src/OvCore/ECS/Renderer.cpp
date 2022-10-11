@@ -109,7 +109,7 @@ void OvCore::ECS::Renderer::RenderScene
 		std::tie(opaqueMeshes, transparentMeshes) = FindAndSortDrawables(p_scene, p_cameraPosition, p_defaultMaterial);
 	}
 
-	auto uboOffset = sizeof(OvMaths::FMatrix4) * 4 + sizeof(OvMaths::FVector3) + sizeof(float);
+	auto uboOffset = sizeof(OvMaths::FMatrix4) * 3 + sizeof(OvMaths::FVector3);
 	for (const auto& [distance, drawable] : opaqueMeshes)
 	{
 		auto boneData = std::get<4>(drawable);
@@ -266,6 +266,8 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 	return { opaqueDrawables, transparentDrawables };
 }
 
+static float pos = 0.0f;
+
 std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::TransparentDrawables> OvCore::ECS::Renderer::FindAndSortDrawables
 (
 	const OvCore::SceneSystem::Scene& p_scene,
@@ -275,6 +277,9 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 {
 	OvCore::ECS::Renderer::OpaqueDrawables opaqueDrawables;
 	OvCore::ECS::Renderer::TransparentDrawables transparentDrawables;
+	pos += 0.1;
+	if (pos > 100)
+		pos = 0.0f;
 
 	for (OvCore::ECS::Components::CModelRenderer* modelRenderer : p_scene.GetFastAccessComponents().modelRenderers)
 	{
@@ -291,7 +296,7 @@ std::pair<OvCore::ECS::Renderer::OpaqueDrawables, OvCore::ECS::Renderer::Transpa
 					const OvCore::ECS::Components::CMaterialRenderer::MaterialList& materials = materialRenderer->GetMaterials();
 					auto anim = modelRenderer->owner.GetComponent<OvCore::ECS::Components::CAnimation>();
 					if (anim)
-						anim->SetSamplePos(0.0f);
+						anim->SetSamplePos(pos);
 					auto bones = anim ? anim->GetBones() : nullptr;
 					for (auto mesh : model->GetMeshes())
 					{

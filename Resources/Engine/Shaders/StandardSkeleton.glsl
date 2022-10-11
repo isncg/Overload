@@ -17,8 +17,8 @@ layout (std140) uniform EngineUBO
     mat4    ubo_View;
     mat4    ubo_Projection;
     vec3    ubo_ViewPos;
-    float   ubo_Time;
-	mat4    ubo_preserve;
+    // float   ubo_Time;
+	// mat4    ubo_preserve;
     int     ubo_boneCount;
     mat4    ubo_bones[64];
 };
@@ -45,19 +45,19 @@ void main()
 
     mat3 TBNi = transpose(vs_out.TBN);
 	
-	float boneEmptyWeight = 1.0;
 	mat4 boneAcc = mat4(0.0);
-
+	int boneCount = 0;
 	for(int i = 0; i < 4; i++)
 	{
 		int boneID = geo_BoneID[i];
 		if(boneID > 0 && boneID <= ubo_boneCount)
 		{
-            boneEmptyWeight -= geo_BoneWeight[i];
-            boneAcc += geo_BoneWeight[i] * ubo_bones[boneID - 1];
+            boneAcc += geo_BoneWeight[i]*ubo_bones[boneID - 1];
+			boneCount +=1;
 		}		
 	}
-	boneAcc +=  mat4(boneEmptyWeight);
+	if(boneCount == 0)
+		boneAcc = mat4(1.0);
 
     vs_out.FragPos          = vec3(ubo_Model * vec4(geo_Pos, 1.0));
     vs_out.Normal           = normalize(mat3(transpose(inverse(ubo_Model))) * geo_Normal);
@@ -78,8 +78,6 @@ layout (std140) uniform EngineUBO
     mat4    ubo_View;
     mat4    ubo_Projection;
     vec3    ubo_ViewPos;
-    float   ubo_Time;
-	mat4    ubo_preserve;
     int     ubo_boneCount;
     mat4    ubo_bones[64];
 };

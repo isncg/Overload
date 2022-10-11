@@ -28,7 +28,6 @@ void OvCore::ECS::Components::CAnimation::SetSamplePos(float time)
 	{
 		const size_type size = anim->meshBoneAnimations.size();
 		m_meshBones.boneCount = size;
-		m_meshBones.bones.resize(size);
 		for (int i = 0; i < m_meshBones.boneCount; ++i)
 		{
 			int id = anim->meshBoneAnimations[i].boneId;
