@@ -3,7 +3,35 @@
 template<class T>
 bool SearchTime(const std::vector<T>& keys, double time, T& result)
 {
-	if (keys.size() == 1)
+	int len = keys.size();
+	if (len < 1)
+		return false;
+	if (len == 1)
+	{
+		result.value = keys[0].value;
+		return true;
+	}
+	int i = 0;
+	for (; i < keys.size(); i++)
+	{
+		if (keys[i].time > time)
+			break;
+	}
+
+	if (i >= len)
+	{
+		result.value = keys[len - 1].value;
+		return true;
+	}
+	double t1 = keys[i - 1].time;
+	double t2 = keys[i].time;
+	float factor = (time - t1) / (t2 - t1);
+	result.value = keys[i - 1].value * t2 + keys[i].value * (1.0 - t2);
+	return true;
+	
+
+
+	/*if (keys.size() == 1)
 	{
 		result.value = keys[0].value;
 		return true;
@@ -34,7 +62,7 @@ bool SearchTime(const std::vector<T>& keys, double time, T& result)
 		result.value = (l.value * (r.time - time) + r.value * (time - l.time)) / (r.time - l.time);
 		return true;
 	}
-	return false;
+	return false;*/
 }
 
 
