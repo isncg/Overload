@@ -20,7 +20,7 @@ namespace OvCore::ECS::Components
 		//const OvRendering::Resources::Animation* m_pAnim;
 		float m_samplePos = 0;
 		OvRendering::Resources::MeshBones m_meshBones;
-		const OvRendering::Resources::Animation* GetAnimationFromModel();
+		OvRendering::Resources::Animation* GetAnimationFromModel();
 	public:
 		/**
 		* Constructor

@@ -7,7 +7,7 @@
 #include "OvCore/ECS/Actor.h"
 #include "OvRendering/Resources/Animation.h"
 
-const OvRendering::Resources::Animation* OvCore::ECS::Components::CAnimation::GetAnimationFromModel()
+OvRendering::Resources::Animation* OvCore::ECS::Components::CAnimation::GetAnimationFromModel()
 {
 	auto pModelRenderer = owner.GetComponent<CModelRenderer>();
 	if (!pModelRenderer)
@@ -23,16 +23,11 @@ OvCore::ECS::Components::CAnimation::CAnimation(ECS::Actor& p_owner) : AComponen
 void OvCore::ECS::Components::CAnimation::SetSamplePos(float time)
 {
 	m_samplePos = time;
-	auto anim = GetAnimationFromModel();
+	OvRendering::Resources::Animation* anim = GetAnimationFromModel();
 	if (anim)
 	{
-		const size_type size = anim->meshBoneAnimations.size();
-		m_meshBones.boneCount = size;
-		for (int i = 0; i < m_meshBones.boneCount; ++i)
-		{
-			int id = anim->meshBoneAnimations[i].boneId;
-			anim->meshBoneAnimations[i].GetTransform(time, m_meshBones.bones[id]);
-		}
+		m_meshBones.boneCount = anim->meshBoneAnimations.size();
+		anim->UpdateTransforms(time, m_meshBones.bones);
 	}
 	else
 	{

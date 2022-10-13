@@ -1,5 +1,10 @@
 #include "OvRendering/Resources/Animation.h"
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/matrix4x4.h>
+#include <assimp/postprocess.h>
+
 template<class T>
 bool SearchTime(const std::vector<T>& keys, double time, T& result)
 {
@@ -73,10 +78,16 @@ void OvRendering::Resources::MeshBoneAnimation::GetTransform(double time, MeshBo
 	MeshBoneAnimationScaleKey scales_result;
 	if (SearchTime(positions, time, positions_result))
 		result.position = positions_result.value;
+	else
+		result.position = OvMaths::FVector3::Zero;
 	if (SearchTime(rotations, time, rotations_result))
 		result.rotation = rotations_result.value;
+	else
+		result.rotation = OvMaths::FQuaternion::Identity;
 	if (SearchTime(scales, time, scales_result))
 		result.scale = scales_result.value;
+	else
+		result.scale = OvMaths::FVector3::One;
 
 }
 
@@ -84,5 +95,48 @@ void OvRendering::Resources::MeshBoneAnimation::GetTransform(double time, OvMath
 {
 	MeshBoneTransform cache;
 	GetTransform(time, cache);
-	result = OvMaths::FMatrix4::Translation(cache.position)* OvMaths::FQuaternion::ToMatrix4(OvMaths::FQuaternion::Normalize(cache.rotation))* OvMaths::FMatrix4::Scaling(cache.scale);
+	//result = OvMaths::FMatrix4::Translation(cache.position)* OvMaths::FQuaternion::ToMatrix4(OvMaths::FQuaternion::Normalize(cache.rotation))* OvMaths::FMatrix4::Scaling(cache.scale);
+	result = OvMaths::FMatrix4::Identity;
+}
+
+void OvRendering::Resources::Animation::UpdateTransform(double time, int boneId, OvMaths::FMatrix4& parentTransform, OvMaths::FMatrix4* allTransformMatrix)
+{
+	int index = boneId - 1;
+	auto& anim = meshBoneAnimations[index];
+	anim.GetTransform(time, allTransformMatrix[index]);
+	allTransformMatrix[index] = parentTransform * allTransformMatrix[index];
+	for (auto childId : anim.children)
+	{
+		UpdateTransform(time, childId, allTransformMatrix[index], allTransformMatrix);
+	}
+}
+
+void OvRendering::Resources::Animation::UpdateTransforms(double time, OvMaths::FMatrix4* allTransformMatrix)
+{
+	//allTransformMatrix.resize(meshBoneAnimations.size());
+	UpdateTransform(time, meshBoneAnimations.front().boneId, meshBoneAnimations.front().offset, allTransformMatrix);
+}
+
+void OvRendering::Resources::Animation::InitTree(aiNode* node, int parentBoneId)
+{
+	int newBoneId = (int)meshBoneAnimations.size() + 1;
+	auto& anim = meshBoneAnimations.emplace_back();
+	anim.boneName = node->mName.C_Str();
+	anim.boneId = newBoneId;
+	anim.offset = *(OvMaths::FMatrix4*)&node->mTransformation;
+
+	if (parentBoneId > 0)
+	{
+		MeshBoneAnimation& parentAnim = meshBoneAnimations[parentBoneId - 1];
+		parentAnim.children.insert(newBoneId);
+	}
+	for (int i = 0; i < node->mNumChildren; i++)
+	{
+		InitTree(node->mChildren[i], newBoneId);
+	}
+}
+
+void OvRendering::Resources::Animation::InitTree(aiNode* node)
+{
+	InitTree(node, 0);
 }

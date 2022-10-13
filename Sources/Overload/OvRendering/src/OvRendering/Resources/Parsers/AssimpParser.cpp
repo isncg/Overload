@@ -80,6 +80,7 @@ bool OvRendering::Resources::Parsers::AssimpParser::LoadModel(const std::string 
 
 	aiMatrix4x4 identity;
 
+	p_outAnimation->InitTree(scene->mRootNode);
 	ProcessNode(&identity, scene->mRootNode, scene, p_meshes, p_outAnimation);
 	ProcessAnimations(scene, p_outAnimation);
 	return true;
@@ -154,8 +155,8 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transfor
 			auto p_bone = p_mesh->mBones[i];
 			std::string boneName = p_bone->mName.C_Str();
 			auto findResultIter = std::find_if(p_outAnimation->meshBoneAnimations.begin(), p_outAnimation->meshBoneAnimations.end(), [&boneName](const MeshBoneAnimation& x) {return x.boneName == boneName; });
-			auto anim = findResultIter == p_outAnimation->meshBoneAnimations.end() ?
-				&p_outAnimation->meshBoneAnimations.emplace_back(MeshBoneAnimation{ boneName, (int)p_outAnimation->meshBoneAnimations.size(), 0 }) : findResultIter._Ptr;
+			if (findResultIter == p_outAnimation->meshBoneAnimations.end())
+				continue;
 			//MeshBoneAnimation* anim = p_outAnimation->GetOrAddBoneAnimation(p_bone->mName.C_Str());
 			for (int w = 0; w < p_bone->mNumWeights; w++)
 			{
@@ -165,7 +166,7 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transfor
 				{
 					if (vert.boneIDs[k] <= 0)
 					{
-						vert.boneIDs[k] = anim->boneId + 1;
+						vert.boneIDs[k] = findResultIter->boneId + 1;
 						vert.boneWeights[k] = weight.mWeight;
 						break;
 					}

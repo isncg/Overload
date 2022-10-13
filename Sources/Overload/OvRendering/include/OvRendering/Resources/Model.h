@@ -38,7 +38,7 @@ namespace OvRendering::Resources
 		*/
 		const OvRendering::Geometry::BoundingSphere& GetBoundingSphere() const;
 
-		const Animation* GetAnimation() const;
+		Animation* GetAnimation();
 
 	private:
 		Model(const std::string& p_path);
