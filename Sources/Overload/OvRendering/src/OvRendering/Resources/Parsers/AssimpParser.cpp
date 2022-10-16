@@ -114,10 +114,10 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transfor
 		std::vector<uint32_t> indices;
 		aiMesh* mesh = p_scene->mMeshes[p_node->mMeshes[i]];
 		auto ovmesh = new OvRendering::Resources::Mesh();
-		ovmesh->m_rigInfo.nodeName = p_node->mName.C_Str();
-		ovmesh->m_rigInfo.meshName = mesh->mName.C_Str();
+		ovmesh->m_rigInfo.m_meshNodeName = p_node->mName.C_Str();
+		ovmesh->m_rigInfo.m_meshName = mesh->mName.C_Str();
 		ProcessMesh(&nodeTransformation, mesh, p_scene, vertices, indices, ovmesh->m_rigInfo);
-		std::cout << "Init mesh " << ovmesh->m_rigInfo.meshName << " on node " << ovmesh->m_rigInfo.nodeName << std::endl;
+		std::cout << "Init mesh " << ovmesh->m_rigInfo.m_meshName << " on node " << ovmesh->m_rigInfo.m_meshNodeName << std::endl;
 		ovmesh->Init(vertices, indices, mesh->mMaterialIndex);
 		p_meshes.push_back(ovmesh); // The model will handle mesh destruction
 	}
@@ -132,6 +132,7 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transfor
 void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transform, aiMesh* p_mesh, const aiScene* p_scene, std::vector<OvRendering::Geometry::AssimpVertex>& p_outVertices, std::vector<uint32_t>& p_outIndices, OvRendering::Resources::MeshRigInfo& rigInfo)
 {
 	aiMatrix4x4 meshTransformation = *reinterpret_cast<aiMatrix4x4*>(p_transform);
+	OvMaths::FMatrix4 meshTransformationInv = OvMaths::FMatrix4::Inverse(*reinterpret_cast<OvMaths::FMatrix4*>(p_transform));
 
 	for (uint32_t i = 0; i < p_mesh->mNumVertices; ++i)
 	{
@@ -154,8 +155,8 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transfor
 			p_outIndices.push_back(face.mIndices[indexID]);
 	}
 
-	rigInfo.boneInfos.clear();
-	auto& defaultBoneInfo = rigInfo.boneInfos.emplace_back(rigInfo.nodeName);
+	rigInfo.m_boneInfos.clear();
+	auto& defaultBoneInfo = rigInfo.m_boneInfos.emplace_back(rigInfo.m_meshNodeName, meshTransformationInv);
 	for (int i = 0; i < p_outVertices.size(); i++)
 	{
 		p_outVertices[i].boneIDs[0] = 1; p_outVertices[i].boneWeights[0] = 1.0f;
@@ -168,11 +169,12 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transfor
 		for (int i = 0; i < p_mesh->mNumBones; ++i)
 		{
 			auto p_bone = p_mesh->mBones[i];
+			auto p_boneOffsetMatrix = (OvMaths::FMatrix4*)&p_mesh->mBones[i]->mOffsetMatrix;
 			//auto& boneInfo = rigInfo.boneInfos.emplace_back(*p_bone);
 			int boneIndex = rigInfo.GetBoneIndex(p_bone->mName.C_Str());
 			if (boneIndex < 0)
 			{
-				rigInfo.boneInfos.emplace_back(*p_bone);
+				rigInfo.m_boneInfos.emplace_back(p_bone->mName.C_Str(), *p_boneOffsetMatrix * meshTransformationInv);
 				boneIndex = rigInfo.GetBoneIndex(p_bone->mName.C_Str());
 			}
 			assert(boneIndex >= 0);

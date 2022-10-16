@@ -99,7 +99,7 @@ namespace OvRendering::Resources
 		if (nullptr != rigInfo)
 			m_rigInfo = *rigInfo;
 
-		CreateBuffers(p_vertices, p_indices, m_rigInfo.boneInfos.size() > 0);
+		CreateBuffers(p_vertices, p_indices, m_rigInfo.m_boneInfos.size() > 0);
 		ComputeBoundingSphere(p_vertices);
 	}
 

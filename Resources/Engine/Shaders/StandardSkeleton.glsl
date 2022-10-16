@@ -46,18 +46,24 @@ void main()
     mat3 TBNi = transpose(vs_out.TBN);
 	
 	mat4 boneAcc = mat4(0.0);
-	int boneCount = 0;
-	for(int i = 0; i < 4; i++)
-	{
-		int boneID = geo_BoneID[i];
-		if(boneID > 0 && boneID <= ubo_boneCount)
-		{
-            boneAcc += geo_BoneWeight[i]*ubo_bones[boneID - 1];
-			boneCount +=1;
-		}		
-	}
-	if(boneCount == 0)
+	// int boneCount = 0;
+	// for(int i = 0; i < 4; i++)
+	// {
+	// 	int boneID = geo_BoneID[i];
+	// 	if(boneID > 0 && boneID <= ubo_boneCount)
+	// 	{
+    //         boneAcc += geo_BoneWeight[i]*ubo_bones[boneID - 1];
+	// 		boneCount +=1;
+	// 	}		
+	// }
+	if(ubo_boneCount == 0)
 		boneAcc = mat4(1.0);
+    else
+        for(int i = 0; i < 4; i++)
+        {
+            int boneID = geo_BoneID[i];
+            boneAcc += geo_BoneWeight[i]*ubo_bones[boneID - 1];	
+        }
 
     vs_out.FragPos          = vec3(ubo_Model * vec4(geo_Pos, 1.0));
     vs_out.Normal           = normalize(mat3(transpose(inverse(ubo_Model))) * geo_Normal);

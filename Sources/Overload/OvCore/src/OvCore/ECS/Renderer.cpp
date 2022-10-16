@@ -128,8 +128,8 @@ void OvCore::ECS::Renderer::RenderScene
 		auto mat = drawable.material;
 		if (drawable.animctrl)
 		{
-			g_uboBoneData.count = drawable.mesh->m_rigInfo.boneInfos.size();
-			drawable.animctrl->front().calculator->GetRigBoneTransforms(drawable.mesh->m_rigInfo, g_uboBoneData.mat);
+			g_uboBoneData.count = drawable.mesh->m_rigInfo.m_boneInfos.size();
+			drawable.animctrl->front().m_calculator->GetRigBoneTransforms(drawable.mesh->m_rigInfo, g_uboBoneData.mat);
 		}
 		else
 		{
@@ -146,8 +146,8 @@ void OvCore::ECS::Renderer::RenderScene
 		auto mat = drawable.material;
 		if (drawable.animctrl)
 		{
-			g_uboBoneData.count = drawable.mesh->m_rigInfo.boneInfos.size();
-			drawable.animctrl->front().calculator->GetRigBoneTransforms(drawable.mesh->m_rigInfo, g_uboBoneData.mat);
+			g_uboBoneData.count = drawable.mesh->m_rigInfo.m_boneInfos.size();
+			drawable.animctrl->front().m_calculator->GetRigBoneTransforms(drawable.mesh->m_rigInfo, g_uboBoneData.mat);
 		}
 		else
 		{
@@ -170,8 +170,8 @@ std::vector<OvRendering::Resources::AnimationPlayCtrl>* GetAnimationPlayCtrlFrom
 			if (hr->animations.size())
 			{
 				OvRendering::Resources::AnimationPlayCtrl ctrl;
-				ctrl.animation = &hr->animations[0];
-				ctrl.calculator = new OvRendering::Resources::ModelNodeTransformCalculator(*hr, *ctrl.animation);
+				ctrl.m_animation = &hr->animations[0];
+				ctrl.m_calculator = new OvRendering::Resources::ModelNodeTransformCalculator(*hr, *ctrl.m_animation);
 				ctrl.time = 0.0;
 				anim->playCtrls.emplace_back(ctrl);
 			}

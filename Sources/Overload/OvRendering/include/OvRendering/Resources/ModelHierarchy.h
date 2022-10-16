@@ -14,62 +14,49 @@ struct aiBone;
 namespace OvRendering::Resources
 {
 	class ModelHierarchy;
-	class ModelNode;
+	class ModelHierarchyNode;
 	class ModelNodeAnimation;
 	class MeshRigInfo;
 
-	class ModelNode
+	class ModelHierarchyNode
 	{
 	public:
-		ModelHierarchy* hierarchy;
-		std::string name;
-		OvMaths::FMatrix4 transform;
+		ModelHierarchy* m_hierarchy;
+		std::string m_name;
+		OvMaths::FMatrix4 m_localTransform;
 		int index;
 		int parent;
-		std::set<int> children;
-		std::vector<std::string> meshNames;
+		std::set<int> m_childrenIndices;
+		std::vector<std::string> m_meshNames;
 		int GetIndex(bool cached = false);
-		ModelNode(const aiScene* scene, aiNode* node);
-	};
-
-	struct ModelNodeAnimationKey
-	{
-		double time;
-		union
-		{
-			OvMaths::FVector3 value_vec;
-			OvMaths::FQuaternion value_qua;
-		};
-		ModelNodeAnimationKey(aiVectorKey& key);
-		ModelNodeAnimationKey(aiQuatKey& key);
-		ModelNodeAnimationKey(ModelNodeAnimationKey& other);
+		ModelHierarchyNode(const aiScene* scene, aiNode* node);
 	};
 
 
 	class ModelNodeAnimation
 	{
 		friend class ModelHierarchy;
-		bool isEmpty;
+		bool m_isEmpty;
 	public:
-		std::string name;
-		ModelHierarchy* hierarchy;
-		std::vector<ModelNodeAnimationKey> positions;
-		std::vector<ModelNodeAnimationKey> rotations;
-		std::vector<ModelNodeAnimationKey> scales;
+		std::string m_hierarchyNodeName;
+		ModelHierarchy* m_hierarchy;
+		std::vector<std::tuple<double, OvMaths::FVector3>> positions;
+		std::vector<std::tuple<double, OvMaths::FQuaternion>> rotations;
+		std::vector<std::tuple<double, OvMaths::FVector3>> scales;
 
 		OvMaths::FMatrix4 GetAnimationTransform(double time) const;
 		ModelNodeAnimation(ModelHierarchy* hierarchy, aiNodeAnim* anim);
 	};
 
 
-	class ModelAnimation
+	class ModelHierarchyAnimation
 	{
 		friend class ModelHierarchy;
 		ModelHierarchy* hierarchy;
 	public:
-		std::string name;
-		std::vector<ModelNodeAnimation> nodeAnimations;
-		ModelAnimation(ModelHierarchy* hierarchy, aiAnimation* anim);
+		std::string m_animName;
+		std::vector<ModelNodeAnimation> m_modelNodeAnimations;
+		ModelHierarchyAnimation(ModelHierarchy* hierarchy, aiAnimation* anim);
 		const ModelNodeAnimation* GetNodeAnimation(std::string name) const;
 
 		//void CalculateTransforms(double time, MeshRigInfo& rigInfo, OvMaths::FMatrix4* transforms);
@@ -77,14 +64,14 @@ namespace OvRendering::Resources
 
 	class ModelNodeTransformCalculator
 	{
-		const ModelHierarchy& hierarchy;
-		const ModelAnimation& animation;
+		const ModelHierarchy& m_hierarchy;
+		const ModelHierarchyAnimation& animation;
 		std::vector<OvMaths::FMatrix4> hierarchyLocalTransforms;
 		std::vector<OvMaths::FMatrix4> hierarchyWorldTransforms;
 		void CalculateNodeTransform(int nodeIndex, int parentIndex);
 	public:
 
-		ModelNodeTransformCalculator(const ModelHierarchy& hierarchy, const ModelAnimation& animation);
+		ModelNodeTransformCalculator(const ModelHierarchy& hierarchy, const ModelHierarchyAnimation& animation);
 		void GetRigBoneTransforms(const MeshRigInfo& rig, OvMaths::FMatrix4* transforms);
 	};
 
@@ -92,9 +79,9 @@ namespace OvRendering::Resources
 	{
 		void CreateChildNode(const aiScene* scene, aiNode* node, int rootIndex);
 	public:
-		std::vector<ModelNode> nodes;
-		std::vector<ModelAnimation> animations;
-		ModelNode* GetNode(std::string name);
+		std::vector<ModelHierarchyNode> nodes;
+		std::vector<ModelHierarchyAnimation> animations;
+		ModelHierarchyNode* GetNode(std::string name);
 		int GetNodeIndex(std::string name) const;
 		void Init(const aiScene* scene);
 
@@ -105,27 +92,27 @@ namespace OvRendering::Resources
 	class MeshRigBoneInfo
 	{
 	public:
-		std::string name;
-		OvMaths::FMatrix4 offset;
+		std::string m_boneName;
+		OvMaths::FMatrix4 m_worldToRigSpaceMatrix;
 		MeshRigBoneInfo(aiBone& bone);
-		MeshRigBoneInfo(std::string name);
+		MeshRigBoneInfo(std::string name, OvMaths::FMatrix4& offset);
 	};
 
 
 	class MeshRigInfo
 	{
 	public:
-		std::string meshName;
-		std::string nodeName;
-		std::vector<MeshRigBoneInfo> boneInfos;
+		std::string m_meshName;
+		std::string m_meshNodeName;
+		std::vector<MeshRigBoneInfo> m_boneInfos;
 		int GetBoneIndex(std::string name);
 	};
 
 	class AnimationPlayCtrl
 	{
 	public:
-		OvRendering::Resources::ModelAnimation* animation;
-		OvRendering::Resources::ModelNodeTransformCalculator* calculator;
+		OvRendering::Resources::ModelHierarchyAnimation* m_animation;
+		OvRendering::Resources::ModelNodeTransformCalculator* m_calculator;
 		double time;
 	};
 }
