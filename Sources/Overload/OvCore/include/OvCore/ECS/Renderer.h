@@ -25,6 +25,14 @@ namespace OvRendering::Buffers
 
 namespace OvCore::ECS
 {
+	struct Drawable
+	{
+		OvMaths::FMatrix4 matrix;
+		OvRendering::Resources::Mesh* mesh;
+		OvCore::Resources::Material* material;
+		OvMaths::FMatrix4 userMatrix;
+		std::vector<OvRendering::Resources::AnimationPlayCtrl>* animctrl;
+	};
 	/**
 	* A Renderer capable of rendering stuffs linked with the ECS. It is a convenient class that should be used instead of OvRendering::Core::Renderer
 	* when you plan to use the OvCore ECS architecture.
@@ -32,7 +40,7 @@ namespace OvCore::ECS
 	class Renderer : public OvRendering::Core::Renderer
 	{
 	public:
-		using Drawable				= std::tuple<OvMaths::FMatrix4, OvRendering::Resources::Mesh*, OvCore::Resources::Material*, OvMaths::FMatrix4, const OvRendering::Resources::MeshBones*>;
+		//using Drawable				= std::tuple<OvMaths::FMatrix4, OvRendering::Resources::Mesh*, OvCore::Resources::Material*, OvMaths::FMatrix4, std::vector<OvRendering::Resources::AnimationPlayCtrl>*>;
 		using OpaqueDrawables		= std::multimap<float, Drawable, std::less<float>>;
 		using TransparentDrawables	= std::multimap<float, Drawable, std::greater<float>>;
 

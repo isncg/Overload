@@ -37,7 +37,7 @@ namespace OvRendering::Resources::Parsers
 			std::vector<Mesh*>& p_meshes,
 			std::vector<std::string>& p_materials,
 			EModelParserFlags p_parserFlags,
-			OvRendering::Resources::Animation* p_outAnimation
+			OvRendering::Resources::ModelHierarchy& p_modelHierarchy
 		) = 0;
 	};
 }

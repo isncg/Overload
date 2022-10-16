@@ -12,6 +12,7 @@
 #include "OvRendering/Buffers/VertexArray.h"
 #include "OvRendering/Buffers/IndexBuffer.h"
 #include "OvRendering/Resources/IMesh.h"
+#include "OvRendering/Resources/ModelHierarchy.h"
 #include "OvRendering/Geometry/Vertex.h"
 #include "OvRendering/Geometry/BoundingSphere.h"
 #include "OvMaths/FMatrix4.h"
@@ -39,7 +40,7 @@ namespace OvRendering::Resources
 		Mesh(std::vector<Geometry::Vertex>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone = false);
 
 		template<class T>
-		void Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone);
+		void Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, MeshRigInfo* rigInfo = nullptr);
 		/**
 		* Bind the mesh (Actually bind its VAO)
 		*/
@@ -69,6 +70,7 @@ namespace OvRendering::Resources
 		* Returns the bounding sphere of the mesh
 		*/
 		const OvRendering::Geometry::BoundingSphere& GetBoundingSphere() const;
+		MeshRigInfo m_rigInfo;
 
 	private:
 		template<class T>
@@ -89,13 +91,15 @@ namespace OvRendering::Resources
 	};
 
 	template<class T>
-	inline void Mesh::Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, bool hasBone)
+	inline void Mesh::Init(std::vector<T>& p_vertices, const std::vector<uint32_t>& p_indices, uint32_t p_materialIndex, MeshRigInfo* rigInfo)
 	{
 		m_vertexCount = static_cast<uint32_t>(p_vertices.size()),
 		m_indicesCount = static_cast<uint32_t>(p_indices.size()),
 		m_materialIndex = p_materialIndex;
+		if (nullptr != rigInfo)
+			m_rigInfo = *rigInfo;
 
-		CreateBuffers(p_vertices, p_indices, hasBone);
+		CreateBuffers(p_vertices, p_indices, m_rigInfo.boneInfos.size() > 0);
 		ComputeBoundingSphere(p_vertices);
 	}
 

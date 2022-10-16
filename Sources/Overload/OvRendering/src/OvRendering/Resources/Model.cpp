@@ -72,7 +72,7 @@ const std::vector<std::string>& OvRendering::Resources::Model::GetMaterialNames(
 	return m_materialNames;
 }
 
-OvRendering::Resources::Animation* OvRendering::Resources::Model::GetAnimation()
+OvRendering::Resources::ModelHierarchy* OvRendering::Resources::Model::GetHierarchy()
 {
-	return &m_animation;
+	return &m_hierarchy;
 }

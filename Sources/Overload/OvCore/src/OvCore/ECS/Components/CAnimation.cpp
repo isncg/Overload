@@ -5,14 +5,11 @@
 #include "OvCore/ECS/Components/CAnimation.h"
 #include "OvCore/ECS/Components/CModelRenderer.h"
 #include "OvCore/ECS/Actor.h"
-#include "OvRendering/Resources/Animation.h"
 
-OvRendering::Resources::Animation* OvCore::ECS::Components::CAnimation::GetAnimationFromModel()
+OvRendering::Resources::ModelHierarchy* OvCore::ECS::Components::CAnimation::GetModelHierarchy()
 {
 	auto pModelRenderer = owner.GetComponent<CModelRenderer>();
-	if (!pModelRenderer)
-		return nullptr;
-	return pModelRenderer->GetModel()->GetAnimation();
+	return pModelRenderer->GetModel()->GetHierarchy();
 }
 
 OvCore::ECS::Components::CAnimation::CAnimation(ECS::Actor& p_owner) : AComponent(p_owner)
@@ -20,20 +17,6 @@ OvCore::ECS::Components::CAnimation::CAnimation(ECS::Actor& p_owner) : AComponen
 
 }
 
-void OvCore::ECS::Components::CAnimation::SetSamplePos(float time)
-{
-	m_samplePos = time;
-	OvRendering::Resources::Animation* anim = GetAnimationFromModel();
-	if (anim)
-	{
-		m_meshBones.boneCount = anim->meshBoneAnimations.size();
-		anim->UpdateTransforms(time, m_meshBones.bones);
-	}
-	else
-	{
-		m_meshBones.boneCount = 0;		
-	}
-}
 
 const OvRendering::Resources::MeshBones* OvCore::ECS::Components::CAnimation::GetBones()
 {

@@ -12,7 +12,7 @@ OvRendering::Resources::Model* OvRendering::Resources::Loaders::ModelLoader::Cre
 {
 	Model* result = new Model(p_filepath);
 
-	if (__ASSIMP.LoadModel(p_filepath, result->m_meshes, result->m_materialNames, p_parserFlags, &result->m_animation))
+	if (__ASSIMP.LoadModel(p_filepath, result->m_meshes, result->m_materialNames, p_parserFlags, result->m_hierarchy))
 	{
 		result->ComputeBoundingSphere();
 		return result;

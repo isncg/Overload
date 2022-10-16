@@ -10,10 +10,11 @@
 #include <assimp/postprocess.h>
 
 #include "OvRendering/Resources/Parsers/AssimpParser.h"
-#include "OvRendering/Resources/Animation.h"
 #include <string>
 #include <map>
 #include <algorithm>
+#include <iostream>
+#include <cassert>
 
 struct OvRendering::Geometry::AssimpVertex
 {
@@ -68,7 +69,7 @@ OvMaths::FVector3& OvRendering::Geometry::VertexHelper::GetBitangent(AssimpVerte
 const int* OvRendering::Geometry::VertexHelper::GetBoneIds(AssimpVertex& v) { return v.boneIDs; }
 const float* OvRendering::Geometry::VertexHelper::GetBoneWeights(AssimpVertex& v) { return v.boneWeights; }
 
-bool OvRendering::Resources::Parsers::AssimpParser::LoadModel(const std::string & p_fileName, std::vector<Mesh*>& p_meshes, std::vector<std::string>& p_materials, EModelParserFlags p_parserFlags, OvRendering::Resources::Animation* p_outAnimation)
+bool OvRendering::Resources::Parsers::AssimpParser::LoadModel(const std::string & p_fileName, std::vector<Mesh*>& p_meshes, std::vector<std::string>& p_materials, EModelParserFlags p_parserFlags, OvRendering::Resources::ModelHierarchy& p_modelHierarchy)
 {
 	Assimp::Importer import;
 	const aiScene* scene = import.ReadFile(p_fileName, static_cast<unsigned int>(p_parserFlags));
@@ -80,9 +81,11 @@ bool OvRendering::Resources::Parsers::AssimpParser::LoadModel(const std::string 
 
 	aiMatrix4x4 identity;
 
-	p_outAnimation->InitTree(scene->mRootNode);
-	ProcessNode(&identity, scene->mRootNode, scene, p_meshes, p_outAnimation);
-	ProcessAnimations(scene, p_outAnimation);
+	p_modelHierarchy.Init(scene);
+	std::cout << "======== " << p_fileName<< " ========" << std::endl;
+	p_modelHierarchy.DumpNodeTree();
+	std::cout << "=========== end ===========" << std::endl;
+	ProcessNode(&identity, scene->mRootNode, scene, p_meshes);
 	return true;
 }
 
@@ -100,7 +103,7 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMaterials(const aiSce
 	}
 }
 
-void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transform, aiNode * p_node, const aiScene * p_scene, std::vector<Mesh*>& p_meshes, OvRendering::Resources::Animation* p_outAnimation)
+void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transform, aiNode * p_node, const aiScene * p_scene, std::vector<Mesh*>& p_meshes)
 {
 	aiMatrix4x4 nodeTransformation = *reinterpret_cast<aiMatrix4x4*>(p_transform) * p_node->mTransformation;
 
@@ -110,20 +113,23 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessNode(void* p_transfor
 		std::vector<Geometry::AssimpVertex> vertices;
 		std::vector<uint32_t> indices;
 		aiMesh* mesh = p_scene->mMeshes[p_node->mMeshes[i]];
-		ProcessMesh(&nodeTransformation, mesh, p_scene, vertices, indices, p_outAnimation);
 		auto ovmesh = new OvRendering::Resources::Mesh();
-		ovmesh->Init(vertices, indices, mesh->mMaterialIndex, mesh->HasBones());
+		ovmesh->m_rigInfo.nodeName = p_node->mName.C_Str();
+		ovmesh->m_rigInfo.meshName = mesh->mName.C_Str();
+		ProcessMesh(&nodeTransformation, mesh, p_scene, vertices, indices, ovmesh->m_rigInfo);
+		std::cout << "Init mesh " << ovmesh->m_rigInfo.meshName << " on node " << ovmesh->m_rigInfo.nodeName << std::endl;
+		ovmesh->Init(vertices, indices, mesh->mMaterialIndex);
 		p_meshes.push_back(ovmesh); // The model will handle mesh destruction
 	}
 
 	// Then do the same for each of its children
 	for (uint32_t i = 0; i < p_node->mNumChildren; ++i)
 	{
-		ProcessNode(&nodeTransformation, p_node->mChildren[i], p_scene, p_meshes, p_outAnimation);
+		ProcessNode(&nodeTransformation, p_node->mChildren[i], p_scene, p_meshes);
 	}
 }
 
-void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transform, aiMesh* p_mesh, const aiScene* p_scene, std::vector<OvRendering::Geometry::AssimpVertex>& p_outVertices, std::vector<uint32_t>& p_outIndices, OvRendering::Resources::Animation* p_outAnimation)
+void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transform, aiMesh* p_mesh, const aiScene* p_scene, std::vector<OvRendering::Geometry::AssimpVertex>& p_outVertices, std::vector<uint32_t>& p_outIndices, OvRendering::Resources::MeshRigInfo& rigInfo)
 {
 	aiMatrix4x4 meshTransformation = *reinterpret_cast<aiMatrix4x4*>(p_transform);
 
@@ -148,84 +154,47 @@ void OvRendering::Resources::Parsers::AssimpParser::ProcessMesh(void* p_transfor
 			p_outIndices.push_back(face.mIndices[indexID]);
 	}
 
-	if (p_mesh->HasBones() && p_outAnimation)
+	rigInfo.boneInfos.clear();
+	auto& defaultBoneInfo = rigInfo.boneInfos.emplace_back(rigInfo.nodeName);
+	for (int i = 0; i < p_outVertices.size(); i++)
+	{
+		p_outVertices[i].boneIDs[0] = 1; p_outVertices[i].boneWeights[0] = 1.0f;
+		p_outVertices[i].boneIDs[1] = 1; p_outVertices[i].boneWeights[1] = 0.0f;
+		p_outVertices[i].boneIDs[2] = 1; p_outVertices[i].boneWeights[2] = 0.0f;
+		p_outVertices[i].boneIDs[3] = 1; p_outVertices[i].boneWeights[3] = 0.0f;
+	}
+	if (p_mesh->HasBones())
 	{
 		for (int i = 0; i < p_mesh->mNumBones; ++i)
 		{
 			auto p_bone = p_mesh->mBones[i];
-			std::string boneName = p_bone->mName.C_Str();
-			auto findResultIter = std::find_if(p_outAnimation->meshBoneAnimations.begin(), p_outAnimation->meshBoneAnimations.end(), [&boneName](const MeshBoneAnimation& x) {return x.boneName == boneName; });
-			if (findResultIter == p_outAnimation->meshBoneAnimations.end())
-				continue;
-			//MeshBoneAnimation* anim = p_outAnimation->GetOrAddBoneAnimation(p_bone->mName.C_Str());
+			//auto& boneInfo = rigInfo.boneInfos.emplace_back(*p_bone);
+			int boneIndex = rigInfo.GetBoneIndex(p_bone->mName.C_Str());
+			if (boneIndex < 0)
+			{
+				rigInfo.boneInfos.emplace_back(*p_bone);
+				boneIndex = rigInfo.GetBoneIndex(p_bone->mName.C_Str());
+			}
+			assert(boneIndex >= 0);
+			int bondId = boneIndex + 1;
 			for (int w = 0; w < p_bone->mNumWeights; w++)
 			{
 				auto & weight = p_bone->mWeights[w];
 				auto& vert = p_outVertices[weight.mVertexId];
-				for (int k = 0; k < 4; k++)
-				{
-					if (vert.boneIDs[k] <= 0)
-					{
-						vert.boneIDs[k] = findResultIter->boneId + 1;
-						vert.boneWeights[k] = weight.mWeight;
+
+				int k = 3;
+				for (; k > 1; k--)
+					if(vert.boneWeights[k] <= 0.0f)
 						break;
-					}
-				}
-			}
-		}
-	}
-}
-
-void OvRendering::Resources::Parsers::AssimpParser::ProcessAnimations(const aiScene* p_scene, OvRendering::Resources::Animation* p_outAnimation)
-{
-	for (int i = 0; i < p_scene->mNumAnimations; ++i)
-	{
-		auto& anim = p_scene->mAnimations[i];
-		for (int channelIndex = 0; channelIndex < anim->mNumChannels; channelIndex++)
-		{
-			aiNodeAnim* nodeAnim = anim->mChannels[channelIndex];
-			std::string nodeName(nodeAnim->mNodeName.C_Str());
-			auto findResult = std::find_if(p_outAnimation->meshBoneAnimations.begin(), p_outAnimation->meshBoneAnimations.end(), [&nodeName](MeshBoneAnimation a) {return a.boneName == nodeName; });
-			if (findResult != p_outAnimation->meshBoneAnimations.end())
-			{
-				for (int keyIndex = 0; keyIndex < nodeAnim->mNumPositionKeys; keyIndex++)
+				vert.boneIDs[k] = bondId;
+				vert.boneWeights[k] = weight.mWeight;
+				if (k > 0)
 				{
-					findResult->positions.emplace_back(
-						MeshBoneAnimationPositionKey{
-							nodeAnim->mPositionKeys[keyIndex].mTime,
-							OvMaths::FVector3(
-								nodeAnim->mPositionKeys[keyIndex].mValue.x,
-								nodeAnim->mPositionKeys[keyIndex].mValue.y,
-								nodeAnim->mPositionKeys[keyIndex].mValue.z
-							)
-						});
-				}
-
-				for (int keyIndex = 0; keyIndex < nodeAnim->mNumRotationKeys; keyIndex++)
-				{
-					findResult->rotations.emplace_back(
-						MeshBoneAnimationRotationKey{
-							nodeAnim->mRotationKeys[keyIndex].mTime,
-							OvMaths::FQuaternion(
-								nodeAnim->mRotationKeys[keyIndex].mValue.x,
-								nodeAnim->mRotationKeys[keyIndex].mValue.y,
-								nodeAnim->mRotationKeys[keyIndex].mValue.z,
-								nodeAnim->mRotationKeys[keyIndex].mValue.w
-							)
-						});
-				}
-
-				for (int keyIndex = 0; keyIndex < nodeAnim->mNumScalingKeys; keyIndex++)
-				{
-					findResult->scales.emplace_back(
-						MeshBoneAnimationScaleKey{
-							nodeAnim->mScalingKeys[keyIndex].mTime,
-							OvMaths::FVector3(
-								nodeAnim->mScalingKeys[keyIndex].mValue.x,
-								nodeAnim->mScalingKeys[keyIndex].mValue.y,
-								nodeAnim->mScalingKeys[keyIndex].mValue.z
-							)
-						});
+					float sum = 0.0f;
+					sum += vert.boneWeights[1];
+					sum += vert.boneWeights[2];
+					sum += vert.boneWeights[3];
+					vert.boneWeights[0] = 1.0 - sum;
 				}
 			}
 		}

@@ -2,6 +2,7 @@
 
 #include "AComponent.h"
 #include "OvRendering/Resources/Mesh.h"
+#include <OvRendering/Resources/ModelHierarchy.h>
 
 namespace OvRendering::Resources 
 {
@@ -20,8 +21,9 @@ namespace OvCore::ECS::Components
 		//const OvRendering::Resources::Animation* m_pAnim;
 		float m_samplePos = 0;
 		OvRendering::Resources::MeshBones m_meshBones;
-		OvRendering::Resources::Animation* GetAnimationFromModel();
 	public:
+		OvRendering::Resources::ModelHierarchy* GetModelHierarchy();
+		std::vector<OvRendering::Resources::AnimationPlayCtrl> playCtrls;
 		/**
 		* Constructor
 		* @param p_owner
@@ -34,9 +36,7 @@ namespace OvCore::ECS::Components
 		~CAnimation() = default;
 		bool isPlaying = false;
 		bool isPaused = false;
-		void SetSamplePos(float time);
-		//void SetAnimation(OvRendering::Resources::Animation& anim);
-		void UpdateBones();
+
 		const OvRendering::Resources::MeshBones* GetBones();
 		virtual std::string GetName() override;
 		virtual void OnSerialize(tinyxml2::XMLDocument& p_doc, tinyxml2::XMLNode* p_node) override;
